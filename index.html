@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Universal Fix</title>
+    <title>Neon Studio: Final Mobile Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
@@ -52,7 +52,6 @@
             padding: 20px;
             max-width: 100%;
             word-wrap: break-word;
-            /* Browser prefixes for maximum compatibility */
             -webkit-text-shadow: 
                 0 0 5px rgba(255,255,255, var(--brightness)),
                 0 0 10px rgba(255,255,255, var(--brightness)),
@@ -92,16 +91,16 @@
         }
         .control-section:last-child { border-bottom: none; }
 
-        label {
+        label.section-title {
             font-size: 0.8rem;
             color: #ccc;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin-bottom: 5px;
+            display: block;
         }
 
-        /* INPUTS */
         input[type="text"] {
             padding: 12px;
             background: #1a1a1a;
@@ -116,7 +115,6 @@
         .lighting-row { display: flex; align-items: center; gap: 15px; }
         input[type="range"] { flex-grow: 1; cursor: pointer; accent-color: var(--neon-color); }
 
-        /* BUTTONS */
         .btn-small {
             padding: 5px 10px;
             font-size: 0.7rem;
@@ -145,14 +143,12 @@
         }
         .btn-share:hover { background: var(--selected-gradient); border-color: transparent; }
 
-        /* COLORS */
         .color-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        .color-btn {
-            width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer;
-        }
+        .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
 
-        /* --- SAMSUNG/OPERA COMPATIBLE COLOR PICKER --- */
-        .custom-color-wrapper {
+        /* --- THE FIX IS HERE --- */
+        /* We use a LABEL tag instead of a DIV. Clicking a label natively opens the input inside it. */
+        .custom-color-label {
             position: relative;
             width: 35px; height: 35px;
             border-radius: 50%;
@@ -163,39 +159,34 @@
             background: #000;
             cursor: pointer;
         }
-        
         .custom-icon {
-            font-size: 20px;
-            line-height: 1;
-            color: #fff;
+            font-size: 20px; line-height: 1; color: #fff;
             background: linear-gradient(45deg, red, blue);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: bold;
-            pointer-events: none; 
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-weight: bold; pointer-events: none; 
         }
-
-        /* We move the input OFF SCREEN instead of just opacity:0 */
-        /* This prevents "clickjacking" protections in Opera/Samsung */
-        input[type="color"] {
+        
+        /* The input is inside the label, but hidden visually. */
+        /* We do NOT use display:none, we use opacity:0 so it remains "clickable" by the browser engine */
+        .hidden-color-input {
             position: absolute;
-            left: -9999px; 
-            top: -9999px;
-            visibility: hidden; 
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+            z-index: 10;
         }
 
-        /* FONTS */
         .font-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .font-btn {
             background: #1a1a1a; border: 1px solid #333; color: #bbb;
             padding: 15px 5px; font-size: 1.1rem; cursor: pointer; border-radius: 6px;
             text-align: center; overflow: hidden; white-space: nowrap;
         }
-        .font-btn.selected {
-            background: var(--selected-gradient); color: #fff; font-weight: bold; border-color: transparent;
-        }
+        .font-btn.selected { background: var(--selected-gradient); color: #fff; font-weight: bold; border-color: transparent; }
 
-        /* SIZE */
         .size-selector { display: flex; gap: 10px; }
         .size-option {
             flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
@@ -234,13 +225,13 @@
         </div>
 
         <div class="control-section">
-            <label>Message</label>
+            <label class="section-title">Message</label>
             <input type="text" id="text-input" value="Glamourous" placeholder="Type here..." maxlength="25">
         </div>
 
         <div class="control-section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <label style="margin:0;">Brightness</label>
+                <label class="section-title" style="margin:0;">Brightness</label>
                 <button id="flicker-btn" class="btn-small active">Flicker ON</button>
             </div>
             <div class="lighting-row">
@@ -249,7 +240,7 @@
         </div>
 
         <div class="control-section">
-            <label>Neon Color</label>
+            <label class="section-title">Neon Color</label>
             <div class="color-grid">
                 <div class="color-btn" style="background:#ffffff;" data-color="#ffffff"></div>
                 <div class="color-btn" style="background:#ff0055;" data-color="#ff0055"></div>
@@ -261,15 +252,15 @@
                 <div class="color-btn" style="background:#ff7700;" data-color="#ff7700"></div>
                 <div class="color-btn" style="background:#aaaaaa;" data-color="#aaaaaa"></div>
 
-                <div class="custom-color-wrapper" id="custom-color-trigger">
+                <label class="custom-color-label" title="Custom RGB">
                     <span class="custom-icon">+</span>
-                </div>
-                <input type="color" id="color-picker" value="#ff0055">
+                    <input type="color" id="color-picker" value="#ff0055" class="hidden-color-input">
+                </label>
             </div>
         </div>
 
         <div class="control-section">
-            <label>Select Font Style</label>
+            <label class="section-title">Select Font Style</label>
             <div class="font-grid">
                 <button class="font-btn" style="font-family: 'Mrs Saint Delafield', cursive;">Sassy</button>
                 <button class="font-btn" style="font-family: 'Pacifico', cursive;">Bossy</button>
@@ -295,7 +286,7 @@
         </div>
 
         <div class="control-section" style="border:none;">
-            <label>Select Size</label>
+            <label class="section-title">Select Size</label>
             <div class="size-selector">
                 <div class="size-option selected" data-size="5.5rem">
                     <div class="size-header">Regular</div>
@@ -324,18 +315,8 @@
         const colorBtns = document.querySelectorAll('.color-btn');
         const shareBtn = document.getElementById('share-btn');
         const shareText = document.getElementById('share-text');
-        
-        // --- MOBILE FIX: CLICK TRIGGER ---
-        // This is the key. We listen for a click on the wrapper, 
-        // then PROGRAMMATICALLY click the hidden input. 
-        // This bypasses many mobile browser restrictions.
-        const colorTrigger = document.getElementById('custom-color-trigger');
-        colorTrigger.addEventListener('click', (e) => {
-            e.preventDefault(); // Stop double taps
-            colorPicker.click(); // Force open the picker
-        });
 
-        // --- SHARED FUNCTIONS ---
+        // --- CORE FUNCTIONS ---
         function updateState(text, color, font, size, brightness, flicker) {
             neonText.innerText = text;
             textInput.value = text;
@@ -388,6 +369,7 @@
             }
         });
 
+        // --- EVENT LISTENERS ---
         shareBtn.addEventListener('click', () => {
             const params = new URLSearchParams();
             params.set('text', neonText.innerText);
@@ -432,9 +414,10 @@
             });
         });
 
+        // Use 'input' for smooth dragging, 'change' for final value (Samsung fallback)
         function updateColor(e) { document.documentElement.style.setProperty('--neon-color', e.target.value); }
         colorPicker.addEventListener('input', updateColor);
-        colorPicker.addEventListener('change', updateColor); // For Samsung Internet
+        colorPicker.addEventListener('change', updateColor);
 
         dimmer.addEventListener('input', (e) => { document.documentElement.style.setProperty('--brightness', e.target.value); });
 
