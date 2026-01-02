@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Studio: Share Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Studio: Mobile Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
@@ -15,7 +15,7 @@
             --selected-gradient: linear-gradient(to right, #a855f7, #ec4899);
         }
 
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
             background-color: var(--bg-color);
@@ -45,7 +45,7 @@
             text-align: center;
             color: #fff;
             font-family: 'Great Vibes', cursive; 
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             cursor: pointer;
             user-select: none;
             opacity: var(--brightness);
@@ -74,6 +74,8 @@
             overflow-y: auto;
             box-shadow: -5px 0 20px rgba(0,0,0,0.5);
             position: relative;
+            /* Smooth scrolling for mobile */
+            -webkit-overflow-scrolling: touch; 
         }
 
         .sidebar::-webkit-scrollbar { width: 10px; }
@@ -168,7 +170,8 @@
             cursor: pointer;
             transition: transform 0.2s;
         }
-        .color-btn:hover { transform: scale(1.1); border-color: #fff; }
+        /* Mobile friendly touch target */
+        .color-btn:active { transform: scale(0.9); }
 
         /* Custom RGB Picker Wrapper */
         .custom-color-wrapper {
@@ -180,11 +183,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
-            overflow: hidden;
             background: #000;
         }
-        .custom-color-wrapper:hover { border-color: white; }
         
         .custom-icon {
             font-size: 18px;
@@ -194,16 +194,19 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: bold;
+            pointer-events: none; /* Allows click to pass through to input */
         }
 
+        /* MOBILE FIX: Ensure input is ON TOP and large enough to tap */
         input[type="color"] {
             position: absolute;
-            top: -5px; left: -5px;
-            width: 50px; height: 50px;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             padding: 0; margin: 0;
             border: none;
             cursor: pointer;
             opacity: 0; 
+            z-index: 10; /* Forces it to be the top layer */
         }
 
         /* --- FONT GRID --- */
@@ -226,7 +229,6 @@
             overflow: hidden;
             white-space: nowrap;
         }
-        .font-btn:hover { background: #222; border-color: #555; color: #fff; }
         .font-btn.selected {
             background: var(--selected-gradient);
             color: #fff;
@@ -250,7 +252,6 @@
             overflow: hidden;
             transition: transform 0.2s;
         }
-        .size-option:hover { border-color: #555; }
         
         .size-header {
             background: #2a2a2a;
@@ -283,7 +284,7 @@
         @media (max-width: 900px) {
             body { flex-direction: column; overflow: auto; }
             .stage { width: 100%; height: 40vh; border-right: none; border-bottom: 1px solid #222;}
-            .sidebar { width: 100%; height: auto; }
+            .sidebar { width: 100%; height: auto; padding-bottom: 50px; }
             #neon-text { font-size: 3.5rem; }
             .font-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
         }
@@ -419,7 +420,6 @@
             // Font
             fontBtns.forEach(b => {
                 b.classList.remove('selected');
-                // Check if button font matches loaded font (strip quotes)
                 const btnFont = b.style.fontFamily.replace(/['"]/g, '');
                 const targetFont = font.replace(/['"]/g, '');
                 if (btnFont.includes(targetFont)) {
@@ -479,10 +479,19 @@
 
             const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
             
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                shareText.innerText = "Link Copied!";
-                setTimeout(() => shareText.innerText = "Copy Share Link", 2000);
-            });
+            // Mobile share support or Clipboard fallback
+            if (navigator.share) {
+                navigator.share({
+                    title: 'My Neon Design',
+                    text: 'Check out this neon sign I made!',
+                    url: shareUrl,
+                }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    shareText.innerText = "Link Copied!";
+                    setTimeout(() => shareText.innerText = "Copy Share Link", 2000);
+                });
+            }
         });
 
         // 1. FONT SELECTION
@@ -512,10 +521,13 @@
             });
         });
 
-        // 4. RGB SLIDER
-        colorPicker.addEventListener('input', (e) => {
+        // 4. RGB SLIDER (MOBILE FIX)
+        // We now listen to 'input' AND 'change' for better mobile support
+        function updateColor(e) {
             document.documentElement.style.setProperty('--neon-color', e.target.value);
-        });
+        }
+        colorPicker.addEventListener('input', updateColor);
+        colorPicker.addEventListener('change', updateColor);
 
         // 5. DIMMER
         dimmer.addEventListener('input', (e) => {
