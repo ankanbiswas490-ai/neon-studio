@@ -3,14 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Color Force Fix</title>
+    <meta name="color-scheme" content="dark">
+    <title>Neon Studio: Dark Mode Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
     <style>
+        /* FIX 2: FORCE BROWSER TO RESPECT OUR COLORS */
         :root {
+            color-scheme: dark;
             --bg-color: #000000;
             --selected-gradient: linear-gradient(to right, #a855f7, #ec4899);
+        }
+
+        html, body {
+            /* This property stops browsers from overriding colors for contrast */
+            forced-color-adjust: none; 
+            -webkit-print-color-adjust: exact;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -43,10 +52,7 @@
             text-align: center;
             font-family: 'Great Vibes', cursive; 
             
-            /* CRITICAL FIX: 
-               We set default color to Pink (not white).
-               The JS will override this instantly.
-            */
+            /* Ensure the text starts with a color, not white */
             color: #ff0055;
             
             cursor: pointer;
@@ -301,20 +307,16 @@
         let isFlickering = true;
         let flickerInterval = null;
 
-        // --- NEW RENDER LOGIC ---
+        // --- RENDER LOGIC ---
         function applyStyles() {
-            // CHANGE: We set the actual text color to the selected color.
-            // This guarantees the text is not white/gray.
+            // FORCE COLOR PROPERTY
+            // This ensures browser won't default to white text
             neonText.style.color = currentColor;
             
-            // We use a white shadow for the "core" brightness, 
-            // and colored shadows for the glow.
             const b = currentBrightness;
             const c = currentColor;
             
-            // 1. Text Color is the neon color
-            // 2. White shadow adds the "hot" core
-            // 3. Colored shadow adds the glow
+            // Neon Glow Stack
             const shadow = `0 0 5px #fff, 0 0 10px #fff, 0 0 20px ${c}, 0 0 40px ${c}, 0 0 80px ${c}`;
             
             neonText.style.textShadow = shadow;
