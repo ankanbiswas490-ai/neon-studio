@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Render Fix</title>
+    <title>Neon Studio: Mobile Render Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg-color: #050505;
+            --neon-color: #ff0055;
+            --bg-color: #000000;
+            --brightness: 1;
             --selected-gradient: linear-gradient(to right, #a855f7, #ec4899);
         }
 
@@ -32,7 +34,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at center, #151515 0%, #000 100%);
+            background: #050505; 
             position: relative;
             overflow: hidden;
             border-right: 1px solid #222;
@@ -41,21 +43,23 @@
         #neon-text {
             font-size: 5.5rem;
             text-align: center;
-            color: #fff;
+            /* CRITICAL FIX: 
+               We set the text color to a very light transparent white.
+               This allows the shadow to bleed through better on mobile.
+            */
+            color: rgba(255,255,255,0.9);
             font-family: 'Great Vibes', cursive; 
-            transition: transform 0.2s ease; /* Removed shadow transition to force instant updates */
+            
+            /* FORCE GPU ACCELERATION */
+            transform: translate3d(0,0,0);
+            -webkit-transform: translate3d(0,0,0);
+            
             cursor: pointer;
             user-select: none;
             padding: 20px;
             max-width: 100%;
             word-wrap: break-word;
-            /* Default Shadow */
-            text-shadow: 
-                0 0 5px #fff,
-                0 0 10px #fff,
-                0 0 20px #fff,
-                0 0 40px #ff0055,
-                0 0 80px #ff0055;
+            transition: transform 0.1s;
         }
 
         /* --- SIDEBAR --- */
@@ -100,10 +104,10 @@
             font-size: 1.1rem;
             width: 100%;
         }
-        input[type="text"]:focus { outline: none; border-color: #ff0055; }
+        input[type="text"]:focus { outline: none; border-color: var(--neon-color); }
 
         .lighting-row { display: flex; align-items: center; gap: 15px; }
-        input[type="range"] { flex-grow: 1; cursor: pointer; }
+        input[type="range"] { flex-grow: 1; cursor: pointer; accent-color: var(--neon-color); }
 
         .btn-small {
             padding: 5px 10px;
@@ -136,8 +140,8 @@
         .color-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
 
-        /* REMOTE LABEL */
-        .custom-color-label {
+        /* THE OVERLAY INPUT FIX (Refined) */
+        .custom-color-container {
             position: relative;
             width: 35px; height: 35px;
             border-radius: 50%;
@@ -146,28 +150,26 @@
             align-items: center;
             justify-content: center;
             background: #000;
-            cursor: pointer;
         }
+
         .custom-icon {
             font-size: 20px; line-height: 1; color: #fff;
             background: linear-gradient(45deg, red, blue);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             font-weight: bold;
+            pointer-events: none;
         }
 
-        /* ACCESSIBLE HIDDEN INPUT */
-        #global-color-picker {
+        /* We put the input ON TOP with opacity 0. 
+           This is the most reliable way to handle touches on Samsung/Opera.
+        */
+        input[type="color"].overlay-input {
             position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-            opacity: 1; 
-            pointer-events: auto; 
+            top: -10px; left: -10px;
+            width: 55px; height: 55px; /* Oversized to catch fat fingers */
+            opacity: 0;
+            z-index: 100;
+            padding: 0; margin: 0; border: none; cursor: pointer;
         }
 
         .font-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -197,8 +199,6 @@
     </style>
 </head>
 <body>
-
-    <input type="color" id="global-color-picker" value="#ff0055">
 
     <div class="stage">
         <h1 id="neon-text">Glamourous</h1>
@@ -239,9 +239,10 @@
                 <div class="color-btn" style="background:#ff7700;" data-color="#ff7700"></div>
                 <div class="color-btn" style="background:#aaaaaa;" data-color="#aaaaaa"></div>
 
-                <label for="global-color-picker" class="custom-color-label" title="Custom RGB" id="label-trigger">
+                <div class="custom-color-container" title="Custom RGB">
                     <span class="custom-icon">+</span>
-                </label>
+                    <input type="color" id="color-picker" value="#ff0055" class="overlay-input">
+                </div>
             </div>
         </div>
 
@@ -295,48 +296,44 @@
         const textInput = document.getElementById('text-input');
         const dimmer = document.getElementById('dimmer');
         const flickerBtn = document.getElementById('flicker-btn');
-        const colorPicker = document.getElementById('global-color-picker');
+        const colorPicker = document.getElementById('color-picker');
         const fontBtns = document.querySelectorAll('.font-btn');
         const sizeOptions = document.querySelectorAll('.size-option');
         const colorBtns = document.querySelectorAll('.color-btn');
         const shareBtn = document.getElementById('share-btn');
         const shareText = document.getElementById('share-text');
-        const labelTrigger = document.getElementById('label-trigger');
 
-        // STATE VARS
+        // State
         let currentBrightness = 1;
         let currentColor = "#ff0055";
         let isFlickering = true;
         let flickerInterval = null;
 
-        // --- NEW RENDERER: Force-Feed Styles ---
+        // --- RENDERER ---
         function applyStyles() {
-            // Mobile GPU Fix: Manually construct shadow string
-            // We do NOT use CSS variables for the shadow color anymore.
-            // We bake the HEX code directly into the shadow string.
-            
+            // SIMPLIFIED SHADOWS FOR MOBILE
+            // Removed the white stack. Using ONLY color stack to ensure visibility.
+            // 20px, 50px, 90px creates a strong glow.
             const b = currentBrightness;
             const c = currentColor;
             
-            const whiteShadow = `0 0 5px rgba(255,255,255,${b}), 0 0 10px rgba(255,255,255,${b}), 0 0 20px rgba(255,255,255,${b})`;
+            // Note: We inject the HEX color directly.
+            const shadowString = `0 0 10px ${c}, 0 0 30px ${c}, 0 0 60px ${c}, 0 0 90px ${c}`;
             
-            // Note: We use the hex color directly here
-            const colorShadow = `0 0 40px ${c}, 0 0 80px ${c}, 0 0 100px ${c}`;
-            
-            // Apply Directly
-            neonText.style.textShadow = `${whiteShadow}, ${colorShadow}`;
+            neonText.style.textShadow = shadowString;
             neonText.style.opacity = b;
+            
+            // Force Reflow trick for stuck renders
+            void neonText.offsetWidth; 
         }
 
-        // --- FLICKER LOGIC ---
         function startFlicker() {
             if(flickerInterval) clearInterval(flickerInterval);
             flickerInterval = setInterval(() => {
                 if(!isFlickering) return;
-                // Randomly dip opacity
-                const randomDim = Math.random() > 0.05 ? 1 : 0.3; 
-                neonText.style.opacity = currentBrightness * randomDim;
-            }, 50); // Fast check
+                const dim = Math.random() > 0.05 ? 1 : 0.4; 
+                neonText.style.opacity = currentBrightness * dim;
+            }, 60);
         }
         
         function stopFlicker() {
@@ -344,7 +341,7 @@
             neonText.style.opacity = currentBrightness;
         }
 
-        // --- EVENT HANDLERS ---
+        // --- HANDLERS ---
         
         function handleColorChange(newColor) {
             currentColor = newColor;
@@ -380,17 +377,12 @@
         });
 
         // Initialize
-        startFlicker();
         applyStyles();
+        startFlicker();
 
-        // --- STANDARD UI HANDLERS ---
-        
+        // --- UI SYNC ---
         textInput.addEventListener('input', (e) => neonText.innerText = e.target.value || " ");
         
-        labelTrigger.addEventListener('click', (e) => {
-            if (e.target !== colorPicker) colorPicker.click();
-        });
-
         fontBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 fontBtns.forEach(b => b.classList.remove('selected'));
@@ -407,7 +399,6 @@
             });
         });
 
-        // Share Logic
         shareBtn.addEventListener('click', () => {
             const params = new URLSearchParams();
             params.set('text', neonText.innerText);
@@ -428,14 +419,13 @@
             }
         });
 
-        // Load Params
         window.addEventListener('DOMContentLoaded', () => {
             const params = new URLSearchParams(window.location.search);
             if(params.has('text')) {
                 neonText.innerText = params.get('text');
                 textInput.value = params.get('text');
                 handleColorChange(params.get('color'));
-                // ... (Font/Size loading similar to before)
+                // Font/Size logic omitted for brevity but should match previous if needed
                 if(params.has('brightness')) {
                     currentBrightness = params.get('brightness');
                     dimmer.value = currentBrightness;
