@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Mobile Render Fix</title>
+    <title>Neon Studio: Color Force Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --neon-color: #ff0055;
             --bg-color: #000000;
-            --brightness: 1;
             --selected-gradient: linear-gradient(to right, #a855f7, #ec4899);
         }
 
@@ -43,23 +41,20 @@
         #neon-text {
             font-size: 5.5rem;
             text-align: center;
-            /* CRITICAL FIX: 
-               We set the text color to a very light transparent white.
-               This allows the shadow to bleed through better on mobile.
-            */
-            color: rgba(255,255,255,0.9);
             font-family: 'Great Vibes', cursive; 
             
-            /* FORCE GPU ACCELERATION */
-            transform: translate3d(0,0,0);
-            -webkit-transform: translate3d(0,0,0);
+            /* CRITICAL FIX: 
+               We set default color to Pink (not white).
+               The JS will override this instantly.
+            */
+            color: #ff0055;
             
             cursor: pointer;
             user-select: none;
             padding: 20px;
             max-width: 100%;
             word-wrap: break-word;
-            transition: transform 0.1s;
+            transition: color 0.1s, text-shadow 0.1s;
         }
 
         /* --- SIDEBAR --- */
@@ -104,10 +99,10 @@
             font-size: 1.1rem;
             width: 100%;
         }
-        input[type="text"]:focus { outline: none; border-color: var(--neon-color); }
+        input[type="text"]:focus { outline: none; border-color: #ff0055; }
 
         .lighting-row { display: flex; align-items: center; gap: 15px; }
-        input[type="range"] { flex-grow: 1; cursor: pointer; accent-color: var(--neon-color); }
+        input[type="range"] { flex-grow: 1; cursor: pointer; }
 
         .btn-small {
             padding: 5px 10px;
@@ -140,7 +135,7 @@
         .color-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
 
-        /* THE OVERLAY INPUT FIX (Refined) */
+        /* OVERLAY INPUT FIX */
         .custom-color-container {
             position: relative;
             width: 35px; height: 35px;
@@ -160,13 +155,10 @@
             pointer-events: none;
         }
 
-        /* We put the input ON TOP with opacity 0. 
-           This is the most reliable way to handle touches on Samsung/Opera.
-        */
         input[type="color"].overlay-input {
             position: absolute;
             top: -10px; left: -10px;
-            width: 55px; height: 55px; /* Oversized to catch fat fingers */
+            width: 55px; height: 55px;
             opacity: 0;
             z-index: 100;
             padding: 0; margin: 0; border: none; cursor: pointer;
@@ -309,29 +301,31 @@
         let isFlickering = true;
         let flickerInterval = null;
 
-        // --- RENDERER ---
+        // --- NEW RENDER LOGIC ---
         function applyStyles() {
-            // SIMPLIFIED SHADOWS FOR MOBILE
-            // Removed the white stack. Using ONLY color stack to ensure visibility.
-            // 20px, 50px, 90px creates a strong glow.
+            // CHANGE: We set the actual text color to the selected color.
+            // This guarantees the text is not white/gray.
+            neonText.style.color = currentColor;
+            
+            // We use a white shadow for the "core" brightness, 
+            // and colored shadows for the glow.
             const b = currentBrightness;
             const c = currentColor;
             
-            // Note: We inject the HEX color directly.
-            const shadowString = `0 0 10px ${c}, 0 0 30px ${c}, 0 0 60px ${c}, 0 0 90px ${c}`;
+            // 1. Text Color is the neon color
+            // 2. White shadow adds the "hot" core
+            // 3. Colored shadow adds the glow
+            const shadow = `0 0 5px #fff, 0 0 10px #fff, 0 0 20px ${c}, 0 0 40px ${c}, 0 0 80px ${c}`;
             
-            neonText.style.textShadow = shadowString;
+            neonText.style.textShadow = shadow;
             neonText.style.opacity = b;
-            
-            // Force Reflow trick for stuck renders
-            void neonText.offsetWidth; 
         }
 
         function startFlicker() {
             if(flickerInterval) clearInterval(flickerInterval);
             flickerInterval = setInterval(() => {
                 if(!isFlickering) return;
-                const dim = Math.random() > 0.05 ? 1 : 0.4; 
+                const dim = Math.random() > 0.05 ? 1 : 0.6; 
                 neonText.style.opacity = currentBrightness * dim;
             }, 60);
         }
@@ -425,7 +419,6 @@
                 neonText.innerText = params.get('text');
                 textInput.value = params.get('text');
                 handleColorChange(params.get('color'));
-                // Font/Size logic omitted for brevity but should match previous if needed
                 if(params.has('brightness')) {
                     currentBrightness = params.get('brightness');
                     dimmer.value = currentBrightness;
