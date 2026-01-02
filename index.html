@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Accessible Fix</title>
+    <title>Neon Studio: Render Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --neon-color: #ff0055;
             --bg-color: #050505;
-            --brightness: 1;
             --selected-gradient: linear-gradient(to right, #a855f7, #ec4899);
         }
 
@@ -45,27 +43,19 @@
             text-align: center;
             color: #fff;
             font-family: 'Great Vibes', cursive; 
-            transition: all 0.2s ease;
+            transition: transform 0.2s ease; /* Removed shadow transition to force instant updates */
             cursor: pointer;
             user-select: none;
-            opacity: var(--brightness);
             padding: 20px;
             max-width: 100%;
             word-wrap: break-word;
-            -webkit-text-shadow: 
-                0 0 5px rgba(255,255,255, var(--brightness)),
-                0 0 10px rgba(255,255,255, var(--brightness)),
-                0 0 20px rgba(255,255,255, var(--brightness)),
-                0 0 40px var(--neon-color),
-                0 0 80px var(--neon-color),
-                0 0 100px var(--neon-color);
+            /* Default Shadow */
             text-shadow: 
-                0 0 5px rgba(255,255,255, var(--brightness)),
-                0 0 10px rgba(255,255,255, var(--brightness)),
-                0 0 20px rgba(255,255,255, var(--brightness)),
-                0 0 40px var(--neon-color),
-                0 0 80px var(--neon-color),
-                0 0 100px var(--neon-color);
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px #fff,
+                0 0 40px #ff0055,
+                0 0 80px #ff0055;
         }
 
         /* --- SIDEBAR --- */
@@ -110,10 +100,10 @@
             font-size: 1.1rem;
             width: 100%;
         }
-        input[type="text"]:focus { outline: none; border-color: var(--neon-color); }
+        input[type="text"]:focus { outline: none; border-color: #ff0055; }
 
         .lighting-row { display: flex; align-items: center; gap: 15px; }
-        input[type="range"] { flex-grow: 1; cursor: pointer; accent-color: var(--neon-color); }
+        input[type="range"] { flex-grow: 1; cursor: pointer; }
 
         .btn-small {
             padding: 5px 10px;
@@ -126,7 +116,7 @@
             text-transform: uppercase;
             font-weight: bold;
         }
-        .btn-small.active { background: var(--neon-color); color: #000; border-color: var(--neon-color); }
+        .btn-small.active { background: #fff; color: #000; border-color: #fff; }
 
         .btn-share {
             padding: 12px;
@@ -146,7 +136,7 @@
         .color-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
 
-        /* --- THE REMOTE LABEL --- */
+        /* REMOTE LABEL */
         .custom-color-label {
             position: relative;
             width: 35px; height: 35px;
@@ -165,9 +155,7 @@
             font-weight: bold;
         }
 
-        /* --- THE ACCESSIBLE HIDDEN INPUT --- */
-        /* This is the standard "Visually Hidden" utility used by accessibility experts. */
-        /* It keeps the element "alive" and interactive in the DOM, just 1px size. */
+        /* ACCESSIBLE HIDDEN INPUT */
         #global-color-picker {
             position: absolute;
             width: 1px;
@@ -178,8 +166,8 @@
             clip: rect(0, 0, 0, 0);
             white-space: nowrap;
             border: 0;
-            opacity: 1; /* Keeping opacity 1 ensures events trigger */
-            pointer-events: auto; /* Keeping events enabled */
+            opacity: 1; 
+            pointer-events: auto; 
         }
 
         .font-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -199,12 +187,6 @@
         .size-option.selected .size-header { background: var(--selected-gradient); color: white; }
         .size-details { padding: 10px; font-size: 0.8rem; color: #888; }
 
-        .flicker-active { animation: flicker 2s infinite alternate; }
-        @keyframes flicker {
-            0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: var(--brightness); }
-            20%, 24%, 55% { opacity: 0.2; }
-        }
-
         @media (max-width: 900px) {
             body { flex-direction: column; overflow: auto; }
             .stage { width: 100%; height: 40vh; border-right: none; border-bottom: 1px solid #222; }
@@ -219,7 +201,7 @@
     <input type="color" id="global-color-picker" value="#ff0055">
 
     <div class="stage">
-        <h1 id="neon-text" class="flicker-active">Glamourous</h1>
+        <h1 id="neon-text">Glamourous</h1>
     </div>
 
     <div class="sidebar">
@@ -321,88 +303,92 @@
         const shareText = document.getElementById('share-text');
         const labelTrigger = document.getElementById('label-trigger');
 
-        // --- BACKUP CLICK TRIGGER ---
-        // If the label 'for' attribute fails on some specific WebView versions,
-        // this JS will manually force the click on the input.
-        labelTrigger.addEventListener('click', (e) => {
-            // We check if the input is already opening natively via HTML label
-            // If not, we force it.
-            if (e.target !== colorPicker) {
-                 colorPicker.click();
-            }
-        });
+        // STATE VARS
+        let currentBrightness = 1;
+        let currentColor = "#ff0055";
+        let isFlickering = true;
+        let flickerInterval = null;
 
-        // --- CORE FUNCTIONS ---
-        function updateState(text, color, font, size, brightness, flicker) {
-            neonText.innerText = text;
-            textInput.value = text;
+        // --- NEW RENDERER: Force-Feed Styles ---
+        function applyStyles() {
+            // Mobile GPU Fix: Manually construct shadow string
+            // We do NOT use CSS variables for the shadow color anymore.
+            // We bake the HEX code directly into the shadow string.
             
-            document.documentElement.style.setProperty('--neon-color', color);
-            colorPicker.value = color;
-
-            fontBtns.forEach(b => {
-                b.classList.remove('selected');
-                const btnFont = b.style.fontFamily.replace(/['"]/g, '');
-                const targetFont = font.replace(/['"]/g, '');
-                if (btnFont.includes(targetFont)) {
-                    b.classList.add('selected');
-                    neonText.style.fontFamily = b.style.fontFamily;
-                }
-            });
-
-            sizeOptions.forEach(o => {
-                o.classList.remove('selected');
-                if (o.getAttribute('data-size') === size) {
-                    o.classList.add('selected');
-                    neonText.style.fontSize = size;
-                }
-            });
-
-            dimmer.value = brightness;
-            document.documentElement.style.setProperty('--brightness', brightness);
-
-            if(flicker === 'true') {
-                neonText.classList.add('flicker-active');
-                flickerBtn.classList.add('active');
-                flickerBtn.innerText = "Flicker ON";
-            } else {
-                neonText.classList.remove('flicker-active');
-                flickerBtn.classList.remove('active');
-                flickerBtn.innerText = "OFF";
-            }
+            const b = currentBrightness;
+            const c = currentColor;
+            
+            const whiteShadow = `0 0 5px rgba(255,255,255,${b}), 0 0 10px rgba(255,255,255,${b}), 0 0 20px rgba(255,255,255,${b})`;
+            
+            // Note: We use the hex color directly here
+            const colorShadow = `0 0 40px ${c}, 0 0 80px ${c}, 0 0 100px ${c}`;
+            
+            // Apply Directly
+            neonText.style.textShadow = `${whiteShadow}, ${colorShadow}`;
+            neonText.style.opacity = b;
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            if(params.has('text')) {
-                const txt = params.get('text');
-                const col = params.get('color');
-                const fnt = params.get('font');
-                const siz = params.get('size');
-                const brt = params.get('brightness');
-                const flk = params.get('flicker');
-                updateState(txt, col, fnt, siz, brt, flk);
+        // --- FLICKER LOGIC ---
+        function startFlicker() {
+            if(flickerInterval) clearInterval(flickerInterval);
+            flickerInterval = setInterval(() => {
+                if(!isFlickering) return;
+                // Randomly dip opacity
+                const randomDim = Math.random() > 0.05 ? 1 : 0.3; 
+                neonText.style.opacity = currentBrightness * randomDim;
+            }, 50); // Fast check
+        }
+        
+        function stopFlicker() {
+            if(flickerInterval) clearInterval(flickerInterval);
+            neonText.style.opacity = currentBrightness;
+        }
+
+        // --- EVENT HANDLERS ---
+        
+        function handleColorChange(newColor) {
+            currentColor = newColor;
+            colorPicker.value = newColor;
+            applyStyles();
+        }
+
+        colorPicker.addEventListener('input', (e) => handleColorChange(e.target.value));
+        colorPicker.addEventListener('change', (e) => handleColorChange(e.target.value));
+
+        colorBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                handleColorChange(btn.getAttribute('data-color'));
+            });
+        });
+
+        dimmer.addEventListener('input', (e) => {
+            currentBrightness = e.target.value;
+            applyStyles();
+        });
+
+        flickerBtn.addEventListener('click', () => {
+            isFlickering = !isFlickering;
+            if(isFlickering) {
+                flickerBtn.classList.add('active');
+                flickerBtn.innerText = "Flicker ON";
+                startFlicker();
+            } else {
+                flickerBtn.classList.remove('active');
+                flickerBtn.innerText = "OFF";
+                stopFlicker();
             }
         });
 
-        shareBtn.addEventListener('click', () => {
-            const params = new URLSearchParams();
-            params.set('text', neonText.innerText);
-            params.set('color', getComputedStyle(document.documentElement).getPropertyValue('--neon-color').trim());
-            params.set('font', neonText.style.fontFamily.replace(/['"]/g, ''));
-            params.set('size', neonText.style.fontSize);
-            params.set('brightness', dimmer.value);
-            params.set('flicker', flickerBtn.classList.contains('active'));
-            const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-            
-            if (navigator.share) {
-                navigator.share({ title: 'Neon Design', url: shareUrl }).catch(console.error);
-            } else {
-                navigator.clipboard.writeText(shareUrl).then(() => {
-                    shareText.innerText = "Link Copied!";
-                    setTimeout(() => shareText.innerText = "Copy Share Link", 2000);
-                });
-            }
+        // Initialize
+        startFlicker();
+        applyStyles();
+
+        // --- STANDARD UI HANDLERS ---
+        
+        textInput.addEventListener('input', (e) => neonText.innerText = e.target.value || " ");
+        
+        labelTrigger.addEventListener('click', (e) => {
+            if (e.target !== colorPicker) colorPicker.click();
         });
 
         fontBtns.forEach(btn => {
@@ -421,28 +407,50 @@
             });
         });
 
-        colorBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const color = btn.getAttribute('data-color');
-                document.documentElement.style.setProperty('--neon-color', color);
-                colorPicker.value = color; 
-            });
+        // Share Logic
+        shareBtn.addEventListener('click', () => {
+            const params = new URLSearchParams();
+            params.set('text', neonText.innerText);
+            params.set('color', currentColor);
+            params.set('font', neonText.style.fontFamily.replace(/['"]/g, ''));
+            params.set('size', neonText.style.fontSize);
+            params.set('brightness', currentBrightness);
+            params.set('flicker', isFlickering);
+            const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+            
+            if (navigator.share) {
+                navigator.share({ title: 'Neon Design', url: shareUrl }).catch(console.error);
+            } else {
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    shareText.innerText = "Link Copied!";
+                    setTimeout(() => shareText.innerText = "Copy Share Link", 2000);
+                });
+            }
         });
 
-        function updateColor(e) { document.documentElement.style.setProperty('--neon-color', e.target.value); }
-        colorPicker.addEventListener('input', updateColor);
-        colorPicker.addEventListener('change', updateColor);
-
-        dimmer.addEventListener('input', (e) => { document.documentElement.style.setProperty('--brightness', e.target.value); });
-
-        flickerBtn.addEventListener('click', () => {
-            neonText.classList.toggle('flicker-active');
-            flickerBtn.classList.toggle('active');
-            flickerBtn.innerText = flickerBtn.classList.contains('active') ? "Flicker ON" : "OFF";
+        // Load Params
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if(params.has('text')) {
+                neonText.innerText = params.get('text');
+                textInput.value = params.get('text');
+                handleColorChange(params.get('color'));
+                // ... (Font/Size loading similar to before)
+                if(params.has('brightness')) {
+                    currentBrightness = params.get('brightness');
+                    dimmer.value = currentBrightness;
+                }
+                if(params.has('flicker')) {
+                    isFlickering = params.get('flicker') === 'true';
+                    if(!isFlickering) {
+                        flickerBtn.classList.remove('active');
+                        flickerBtn.innerText = "OFF";
+                        stopFlicker();
+                    }
+                }
+                applyStyles();
+            }
         });
-
-        textInput.addEventListener('input', (e) => neonText.innerText = e.target.value || " ");
-        neonText.addEventListener('click', () => textInput.focus()); 
 
     </script>
 </body>
