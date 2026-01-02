@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Studio: Overlay Fix</title>
+    <title>Neon Studio: Remote Fix</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Allura&family=Cookie&family=Great+Vibes&family=Lobster&family=Marck+Script&family=Monoton&family=Monsieur+La+Doulaise&family=Mrs+Saint+Delafield&family=Mystery+Quest&family=Orbitron&family=Pacifico&family=Parisienne&family=Pinyon+Script&family=Rock+Salt&family=Rubik+Glitch&family=Sacramento&family=Sofia&family=VT323&family=Wallpoet&family=Yellowtail&display=swap" rel="stylesheet">
 
@@ -88,7 +88,6 @@
             gap: 10px;
             padding-bottom: 20px;
             border-bottom: 1px solid #222;
-            position: relative; /* Safety context */
         }
         .control-section:last-child { border-bottom: none; }
 
@@ -147,51 +146,41 @@
         .color-grid { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
         .color-btn { width: 35px; height: 35px; border-radius: 50%; border: 2px solid #333; cursor: pointer; }
 
-        /* --- THE MAGIC OVERLAY FIX --- */
-        .custom-color-container {
-            position: relative; /* Anchors the absolute input */
-            width: 35px;
-            height: 35px;
+        /* --- THE REMOTE LABEL FIX --- */
+        /* This label acts as the button. It is linked to the hidden input via 'for' */
+        .custom-color-label {
+            position: relative;
+            width: 35px; height: 35px;
             border-radius: 50%;
             border: 2px dashed #666;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #000;
+            cursor: pointer; /* Critical for iOS/Samsung to register it as clickable */
         }
-
         .custom-icon {
-            font-size: 20px;
-            line-height: 1;
-            color: #fff;
+            font-size: 20px; line-height: 1; color: #fff;
             background: linear-gradient(45deg, red, blue);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             font-weight: bold;
-            pointer-events: none; /* Let clicks pass through icon */
         }
 
-        /* THIS IS THE FIX: 
-           The input is NOT hidden (display:none). 
-           It is fully layout-ed, covering the entire button, 
-           sitting ON TOP (z-index 10), but just transparent (opacity 0).
-           When you tap the button, you are PHYSICALLY tapping the input.
+        /* THE HIDDEN INPUT 
+           We move this completely out of the sidebar flow to prevent clipping 
+           or overflow issues on mobile browsers.
         */
-        input[type="color"].overlay-input {
-            position: absolute;
-            top: -5px; 
-            left: -5px;
-            width: 45px; /* Larger than container to ensure touch hit */
-            height: 45px;
+        #global-color-picker {
+            position: fixed; /* Fixed to viewport, never scrolls */
+            top: 10px;
+            left: 10px;
+            width: 1px;
+            height: 1px;
             opacity: 0;
-            z-index: 50; /* Topmost layer */
-            padding: 0;
-            margin: 0;
-            border: none;
-            cursor: pointer;
+            pointer-events: none;
+            z-index: -1;
         }
 
-        /* Fonts */
         .font-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .font-btn {
             background: #1a1a1a; border: 1px solid #333; color: #bbb;
@@ -200,7 +189,6 @@
         }
         .font-btn.selected { background: var(--selected-gradient); color: #fff; font-weight: bold; border-color: transparent; }
 
-        /* Size */
         .size-selector { display: flex; gap: 10px; }
         .size-option {
             flex: 1; background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
@@ -226,6 +214,8 @@
     </style>
 </head>
 <body>
+
+    <input type="color" id="global-color-picker" value="#ff0055">
 
     <div class="stage">
         <h1 id="neon-text" class="flicker-active">Glamourous</h1>
@@ -266,11 +256,10 @@
                 <div class="color-btn" style="background:#ff7700;" data-color="#ff7700"></div>
                 <div class="color-btn" style="background:#aaaaaa;" data-color="#aaaaaa"></div>
 
-                <div class="custom-color-container" title="Custom RGB">
+                <label for="global-color-picker" class="custom-color-label" title="Custom RGB">
                     <span class="custom-icon">+</span>
-                    <input type="color" id="color-picker" value="#ff0055" class="overlay-input">
-                </div>
-                </div>
+                </label>
+            </div>
         </div>
 
         <div class="control-section">
@@ -323,7 +312,8 @@
         const textInput = document.getElementById('text-input');
         const dimmer = document.getElementById('dimmer');
         const flickerBtn = document.getElementById('flicker-btn');
-        const colorPicker = document.getElementById('color-picker');
+        // UPDATE: Selecting the new global ID
+        const colorPicker = document.getElementById('global-color-picker');
         const fontBtns = document.querySelectorAll('.font-btn');
         const sizeOptions = document.querySelectorAll('.size-option');
         const colorBtns = document.querySelectorAll('.color-btn');
